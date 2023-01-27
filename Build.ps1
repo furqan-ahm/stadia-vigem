@@ -164,17 +164,15 @@ Write-Host "-- Build started. Configuration: $Configuration, Architecture: $Arch
 if ($Architecture -eq "x86" -Or $Architecture -eq "ALL") {
     Invoke-BuildTools -Architecture "x86"
     Invoke-Build-libstadia -Architecture "x86"
-    Invoke-Build-Stadia-Tester -Architecture "x86"
     Invoke-Build-Service -Architecture "x86"
-    #Invoke-Build-Tray -Architecture "x86"
+    Invoke-Build-Tray -Architecture "x86"
 }
 
 if ($Architecture -eq "x64" -Or $Architecture -eq "ALL") {
     Invoke-BuildTools -Architecture "x64"
     Invoke-Build-libstadia -Architecture "x64"
-    Invoke-Build-Stadia-Tester -Architecture "x64"
     Invoke-Build-Service -Architecture "x64"
-    #Invoke-Build-Tray -Architecture "x64"
+    Invoke-Build-Tray -Architecture "x64"
 }
 
 Write-Host "-- Build completed. --"
