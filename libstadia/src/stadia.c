@@ -13,7 +13,7 @@
 
 #pragma comment(lib, "kernel32.lib")
 
-#define STADIA_READ_TIMEOUT 10
+#define STADIA_READ_TIMEOUT 100
 
 /*
  * Stadia controller vibration output report identifier.
@@ -33,28 +33,24 @@ static const DWORD dpad_map[8] =
         STADIA_BUTTON_LEFT,
         STADIA_BUTTON_LEFT | STADIA_BUTTON_UP};
 
-static int last_error = 0;
-
 static DWORD WINAPI _stadia_input_thread(LPVOID lparam)
 {
     struct stadia_controller *controller = (struct stadia_controller *)lparam;
     INT bytes_read = 0;
+    BYTE break_reason = STADIA_BREAK_REASON_UNKNOWN;
 
     while (controller->active)
     {
-        while ((bytes_read = hid_get_input_report(controller->device, STADIA_READ_TIMEOUT)) == 0)
-            ;
+        while ((bytes_read = hid_get_input_report(controller->device, STADIA_READ_TIMEOUT)) == 0);
 
-        if (bytes_read < 0)
-        {
+        if (!controller->active || bytes_read < 0) {
+            break_reason = !controller->active ? STADIA_BREAK_REASON_REQUESTED : STADIA_BREAK_REASON_READ_ERROR;
             break;
         }
 
         // check packet header
         if (controller->device->input_buffer[0] != 0x03)
-        {
             continue;
-        }
 
         AcquireSRWLockExclusive(&controller->state_lock);
 
@@ -66,6 +62,8 @@ static DWORD WINAPI _stadia_input_thread(LPVOID lparam)
         controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 6)) != 0 ? STADIA_BUTTON_OPTIONS : 0;
         controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 5)) != 0 ? STADIA_BUTTON_MENU : 0;
         controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 4)) != 0 ? STADIA_BUTTON_STADIA_BTN : 0;
+        controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 1)) != 0 ? STADIA_BUTTON_ASSISTANT : 0;
+        controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 0)) != 0 ? STADIA_BUTTON_SHARE : 0;
 
         controller->state.buttons |= (controller->device->input_buffer[3] & (1 << 6)) != 0 ? STADIA_BUTTON_A : 0;
         controller->state.buttons |= (controller->device->input_buffer[3] & (1 << 5)) != 0 ? STADIA_BUTTON_B : 0;
@@ -89,7 +87,7 @@ static DWORD WINAPI _stadia_input_thread(LPVOID lparam)
         stadia_update_callback(controller, &controller->state);
     }
 
-    stadia_controller_destroy(controller);
+    stadia_controller_destroy(controller, break_reason);
 
     return 0;
 }
@@ -127,7 +125,6 @@ struct stadia_controller *stadia_controller_create(struct hid_device *device)
 {
     if (!hid_send_output_report(device, init_vibration, sizeof(init_vibration), STADIA_READ_TIMEOUT) <= 0)
     {
-        last_error = STADIA_ERROR_VIBRATION_INIT_FAILURE;
         // Don't error out for now.
         // TODO: Fix vibration for bluetooth controllers.
         //return NULL;
@@ -155,9 +152,7 @@ struct stadia_controller *stadia_controller_create(struct hid_device *device)
 
     if (controller->input_thread == NULL || controller->output_thread == NULL)
     {
-        stadia_controller_destroy(controller);
-
-        last_error = STADIA_ERROR_THREAD_CREATE_FAILURE;
+        stadia_controller_destroy(controller, STADIA_BREAK_REASON_INIT_ERROR);
         return NULL;
     }
 
@@ -179,7 +174,7 @@ void stadia_controller_set_vibration(struct stadia_controller *controller, BYTE 
     SetEvent(controller->output_event);
 }
 
-void stadia_controller_destroy(struct stadia_controller *controller)
+void stadia_controller_destroy(struct stadia_controller *controller, BYTE break_reason)
 {
     CancelIoEx(controller->device->handle, &controller->device->input_ol);
 
@@ -209,7 +204,7 @@ void stadia_controller_destroy(struct stadia_controller *controller)
         CloseHandle(threads[i]);
     }
 
-    stadia_destroy_callback(controller);
+    stadia_destroy_callback(controller, break_reason);
 
     free(controller);
 }
