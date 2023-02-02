@@ -2,23 +2,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Build and debug stadia-vigem",
+            "name": "Build and debug Stadia-ViGEm",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "bin/stadia-vigem-x64.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "preLaunchTask": "Build debug binary (x64)"
-        },
-        {
-            "name": "Build and debug stadia-tester",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "bin/stadia-tester-x64.exe",
-            "args": [],
+            "program": "bin/Stadia-ViGEm.Service.x64.exe",
+            "args": ["debug"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
