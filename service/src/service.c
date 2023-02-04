@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <tchar.h>
 #include <windows.h>
 #include <shellapi.h>
 #include <synchapi.h>
@@ -247,7 +246,7 @@ void refresh_devices()
 
         while (cur != NULL)
         {
-            if (_tcscmp(active_devices[i]->src_device->path, cur->path) == 0)
+            if (wcscmp(active_devices[i]->src_device->path, cur->path) == 0)
             {
                 found = TRUE;
                 break;
@@ -270,7 +269,7 @@ void refresh_devices()
 
         for (int i = 0; i < active_device_count; i++)
         {
-            if (_tcscmp(cur->path, active_devices[i]->src_device->path) == 0)
+            if (wcscmp(cur->path, active_devices[i]->src_device->path) == 0)
             {
                 found = TRUE;
                 break;

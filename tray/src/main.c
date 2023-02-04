@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <tchar.h>
 #include <windows.h>
 #include <synchapi.h>
 
@@ -39,7 +38,7 @@ static struct tray_menu tray_menu_device_count;
 
 // future declarations
 static void stadia_controller_update_cb(struct stadia_controller *controller, struct stadia_state *state);
-static void stadia_controller_stop_cb(struct stadia_controller *controller);
+static void stadia_controller_stop_cb(struct stadia_controller *controller, BYTE break_reason);
 static void CALLBACK x360_notification_cb(PVIGEM_CLIENT client, PVIGEM_TARGET target, UCHAR large_motor,
                                           UCHAR small_motor, UCHAR led_number, LPVOID user_data);
 static void refresh_cb(struct tray_menu *item);
@@ -78,11 +77,11 @@ static void rebuild_tray_menu()
 
     AcquireSRWLockShared(&active_devices_lock);
 
-    LPTSTR old_device_count_text = tray_menu_device_count.text;
+    LPWSTR old_device_count_text = tray_menu_device_count.text;
 
-    INT tray_text_length = _sctprintf(DEVICE_COUNT_TEMPLATE, active_device_count);
-    tray_menu_device_count.text = (LPTSTR)malloc((tray_text_length + 1) * sizeof(TCHAR));
-    _stprintf(tray_menu_device_count.text, DEVICE_COUNT_TEMPLATE, active_device_count);
+    INT tray_text_length = _scwprintf(DEVICE_COUNT_TEMPLATE, active_device_count);
+    tray_menu_device_count.text = (LPWSTR)malloc((tray_text_length + 1) * sizeof(WCHAR));
+    wsprintf(tray_menu_device_count.text, DEVICE_COUNT_TEMPLATE, active_device_count);
 
     free(old_device_count_text);
 
@@ -98,7 +97,7 @@ static void rebuild_tray_menu()
     free(prev_menu);
 }
 
-static BOOL add_device(LPTSTR path)
+static BOOL add_device(LPWSTR path)
 {
     if (active_device_count == MAX_ACTIVE_DEVICE_COUNT)
     {
@@ -212,7 +211,7 @@ static BOOL remove_device(struct stadia_controller *controller)
 
 static void refresh_devices()
 {
-    LPTSTR stadia_hw_path_filters[3] = {STADIA_USB_HW_FILTER, STADIA_BLT_HW_FILTER, NULL};
+    LPWSTR stadia_hw_path_filters[3] = {STADIA_USB_HW_FILTER, STADIA_BLT_HW_FILTER, NULL};
     struct hid_device_info *device_info = hid_enumerate(stadia_hw_path_filters);
     struct hid_device_info *cur;
     BOOL found = FALSE;
@@ -227,7 +226,7 @@ static void refresh_devices()
 
         while (cur != NULL)
         {
-            if (_tcscmp(active_devices[i]->src_device->path, cur->path) == 0)
+            if (wcscmp(active_devices[i]->src_device->path, cur->path) == 0)
             {
                 found = TRUE;
                 break;
@@ -238,7 +237,7 @@ static void refresh_devices()
 
         if (!found)
         {
-            stadia_controller_destroy(active_devices[i]->controller);
+            stadia_controller_destroy(active_devices[i]->controller, STADIA_BREAK_REASON_REQUESTED);
         }
     }
 
@@ -252,7 +251,7 @@ static void refresh_devices()
         AcquireSRWLockShared(&active_devices_lock);
         for (int i = 0; i < active_device_count; i++)
         {
-            if (_tcscmp(cur->path, active_devices[i]->src_device->path) == 0)
+            if (wcscmp(cur->path, active_devices[i]->src_device->path) == 0)
             {
                 found = TRUE;
                 break;
@@ -275,7 +274,7 @@ static void refresh_devices()
     }
 }
 
-static void device_change_cb(UINT op, LPTSTR path)
+static void device_change_cb()
 {
     refresh_devices();
 }
@@ -327,9 +326,9 @@ static void stadia_controller_update_cb(struct stadia_controller *controller, st
     }
 }
 
-static void stadia_controller_stop_cb(struct stadia_controller *controller)
+static void stadia_controller_stop_cb(struct stadia_controller *controller, BYTE break_reason)
 {
-    LPTSTR ntf_text;
+    UNREFERENCED_PARAMETER(break_reason);
     if (remove_device(controller))
     {
         rebuild_tray_menu();
@@ -340,6 +339,10 @@ static void stadia_controller_stop_cb(struct stadia_controller *controller)
 static void CALLBACK x360_notification_cb(PVIGEM_CLIENT client, PVIGEM_TARGET target, UCHAR large_motor,
                                           UCHAR small_motor, UCHAR led_number, LPVOID user_data)
 {
+    UNREFERENCED_PARAMETER(led_number);
+    UNREFERENCED_PARAMETER(target);
+    UNREFERENCED_PARAMETER(client);
+
     struct active_device *active_device = (struct active_device *)user_data;
     stadia_controller_set_vibration(active_device->controller, small_motor, large_motor);
 }

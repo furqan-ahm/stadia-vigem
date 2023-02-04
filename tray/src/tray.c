@@ -2,7 +2,6 @@
  * tray.c -- Routines for providing the tray control.
  */
 
-#include <tchar.h>
 #include <windows.h>
 #include <shellapi.h>
 #include <dbt.h>
@@ -23,7 +22,7 @@ static HWND window_handle = NULL;
 static HMENU hmenu = NULL;
 static HANDLE hmutex;
 static HDEVNOTIFY hdevntf;
-static void (*devntf_cb)(UINT op, LPTSTR path) = NULL;
+static void (*devntf_cb)() = NULL;
 
 static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
@@ -58,7 +57,7 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARA
                 .cbSize = sizeof(MENUITEMINFO),
                 .fMask = MIIM_ID | MIIM_DATA,
             };
-            if (GetMenuItemInfo(hmenu, wparam, FALSE, &item))
+            if (GetMenuItemInfo(hmenu, (UINT)wparam, FALSE, &item))
             {
                 struct tray_menu *menu = (struct tray_menu *)item.dwItemData;
                 if (menu != NULL && menu->cb != NULL)
@@ -82,13 +81,13 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARA
                 op = DO_TRAY_DEV_REMOVED;
                 break;
             }
-            LPTSTR path = NULL;
+            LPWSTR path = NULL;
             if (lparam != 0)
             {
                 PDEV_BROADCAST_DEVICEINTERFACE bdi = (PDEV_BROADCAST_DEVICEINTERFACE)lparam;
                 path = bdi->dbcc_name;
             }
-            devntf_cb(op, path);
+            devntf_cb();
         }
         break;
     }
@@ -100,7 +99,7 @@ static HMENU _tray_menu(struct tray_menu *m, UINT *id)
     HMENU new_menu = CreatePopupMenu();
     for (; m != NULL && m->text != NULL; m++, (*id)++)
     {
-        if (_tcscmp(m->text, TEXT("-")) == 0)
+        if (wcscmp(m->text, TEXT("-")) == 0)
         {
             InsertMenu(new_menu, *id, MF_SEPARATOR, TRUE, TEXT(""));
         }
@@ -204,7 +203,7 @@ void tray_update(struct tray *tray)
         DestroyIcon(nid.hIcon);
     }
     nid.hIcon = hicon;
-    _tcscpy(nid.szTip, tray->tip);
+    wcscpy(nid.szTip, tray->tip);
     Shell_NotifyIcon(NIM_MODIFY, &nid);
 
     if (prevmenu != NULL)
@@ -231,7 +230,7 @@ void tray_exit()
     CloseHandle(hmutex);
 }
 
-void tray_register_device_notification(GUID filter, void (*cb)(UINT, LPTSTR))
+void tray_register_device_notification(GUID filter, void (*cb)())
 {
     if (window_handle == NULL)
     {
@@ -251,7 +250,7 @@ void tray_register_device_notification(GUID filter, void (*cb)(UINT, LPTSTR))
     }
 }
 
-void tray_show_notification(UINT type, LPTSTR title, LPTSTR text)
+void tray_show_notification(UINT type, LPWSTR title, LPWSTR text)
 {
     if (window_handle == NULL)
     {
@@ -261,8 +260,8 @@ void tray_show_notification(UINT type, LPTSTR title, LPTSTR text)
     NOTIFYICONDATA nid_info;
     memmove(&nid_info, &nid, sizeof(NOTIFYICONDATA));
     nid_info.uFlags |= NIF_INFO;
-    _tcscpy(nid_info.szInfoTitle, title);
-    _tcscpy(nid_info.szInfo, text);
+    wcscpy(nid_info.szInfoTitle, title);
+    wcscpy(nid_info.szInfo, text);
     switch (type)
     {
     case NT_TRAY_INFO:

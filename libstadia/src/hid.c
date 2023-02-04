@@ -6,7 +6,6 @@
 
 #include "utils.h"
 
-#include <tchar.h>
 #include <initguid.h>
 #include <windows.h>
 #include <hidsdi.h>
@@ -75,7 +74,7 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
                     matched = FALSE;
                     for (const LPTSTR *pfilter = path_filters; *pfilter != NULL; pfilter++)
                     {
-                        if (_tcsistr(device_interface_detail_data->DevicePath, *pfilter) != NULL)
+                        if (wcsstr(device_interface_detail_data->DevicePath, *pfilter) != NULL)
                         {
                             matched = TRUE;
                             break;
@@ -94,17 +93,10 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
                         memset(desc_buffer_w, 0, required_size);
                         SetupDiGetDevicePropertyW(device_info_set, &devinfo_data, &DEVPKEY_Device_BusReportedDeviceDesc,
                                                   &prop_type, (PBYTE)desc_buffer_w, required_size, NULL, 0);
-#ifdef UNICODE
                         desc_buffer = desc_buffer_w;
-#else
-                        int desc_buffer_size = WideCharToMultiByte(CP_ACP, 0, desc_buffer_w, -1, desc_buffer, 0, NULL, NULL);
-                        desc_buffer = (LPSTR)malloc(desc_buffer_size);
-                        WideCharToMultiByte(CP_ACP, 0, desc_buffer_w, -1, desc_buffer, desc_buffer_size, NULL, NULL);
-                        free(desc_buffer_w);
-#endif /* UNICODE */
                     }
 
-                    if (desc_buffer == NULL || _tcslen(desc_buffer) == 0)
+                    if (desc_buffer == NULL || wcslen(desc_buffer) == 0)
                     {
                         if (desc_buffer != NULL)
                         {
@@ -122,8 +114,8 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
                     }
 
                     struct hid_device_info *dev = (struct hid_device_info *)malloc(sizeof(struct hid_device_info));
-                    dev->path = (LPTSTR)malloc((_tcslen(device_interface_detail_data->DevicePath) + 1) * sizeof(TCHAR));
-                    _tcscpy(dev->path, device_interface_detail_data->DevicePath);
+                    dev->path = (LPWSTR)malloc((wcslen(device_interface_detail_data->DevicePath) + 1) * sizeof(WCHAR));
+                    wcscpy(dev->path, device_interface_detail_data->DevicePath);
                     dev->description = desc_buffer;
                     dev->next = NULL;
 
@@ -152,25 +144,18 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
     return root_dev;
 }
 
-BOOL hid_reenable_device(LPTSTR path)
+BOOL hid_reenable_device(LPWSTR path)
 {
     GUID class_guid = hid_get_class();
     SP_DEVINFO_DATA devinfo_data;
     HDEVINFO device_info_set = INVALID_HANDLE_VALUE;
     DWORD required_size = 0;
     LPWSTR path_w;
-    LPTSTR inst_id = NULL;
+    LPWSTR inst_id = NULL;
 
     memset(&devinfo_data, 0x0, sizeof(devinfo_data));
     devinfo_data.cbSize = sizeof(SP_DEVINFO_DATA);
-
-#ifdef UNICODE
     path_w = path;
-#else
-    int path_length = strlen(path);
-    path_w = malloc((path_length + 1) * sizeof(WCHAR));
-    MultiByteToWideChar(CP_ACP, 0, path, -1, path_w, path_length + 1);
-#endif /* UNICODE */
 
     DEVPROPTYPE prop_type;
     CM_Get_Device_Interface_PropertyW(path_w, &DEVPKEY_Device_InstanceId, &prop_type, NULL, &required_size, 0);
@@ -181,15 +166,7 @@ BOOL hid_reenable_device(LPTSTR path)
         return FALSE;
     }
 
-#ifdef UNICODE
     inst_id = inst_id_w;
-#else
-    free(path_w);
-    int inst_id_size = WideCharToMultiByte(CP_ACP, 0, inst_id_w, -1, inst_id, 0, NULL, NULL);
-    inst_id = (LPSTR)malloc(inst_id_size);
-    WideCharToMultiByte(CP_ACP, 0, inst_id_w, -1, inst_id, inst_id_size, NULL, NULL);
-    free(inst_id_w);
-#endif /* UNICODE */
 
     device_info_set = SetupDiGetClassDevs(&class_guid, inst_id, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
     if (device_info_set == INVALID_HANDLE_VALUE)
@@ -288,8 +265,8 @@ struct hid_device *hid_open_device(LPTSTR path, BOOL access_rw, BOOL shared)
     }
 
     struct hid_device *dev = (struct hid_device *)malloc(sizeof(struct hid_device));
-    dev->path = (LPTSTR)malloc((_tcslen(path) + 1) * sizeof(TCHAR));
-    _tcscpy(dev->path, path);
+    dev->path = (LPWSTR)malloc((wcslen(path) + 1) * sizeof(WCHAR));
+    wcscpy(dev->path, path);
     dev->handle = handle;
     dev->read_pending = FALSE;
     dev->input_report_size = caps.InputReportByteLength;
@@ -398,24 +375,6 @@ INT hid_send_output_report(struct hid_device *device, const void *data, size_t l
     }
 
     device->write_pending = FALSE;
-    return -1;
-}
-
-INT hid_send_feature_report(struct hid_device *device, const void *data, size_t length)
-{
-    if (length <= device->feature_report_size)
-    {
-        memset(device->feature_buffer, 0, device->feature_report_size);
-        memmove(device->feature_buffer, data, length);
-    }
-    else
-    {
-        memmove(device->feature_buffer, data, device->feature_report_size);
-    }
-    if (HidD_SetFeature(device->handle, (PVOID)device->feature_buffer, device->feature_report_size))
-    {
-        return length < device->feature_report_size ? length : device->feature_report_size;
-    }
     return -1;
 }
 

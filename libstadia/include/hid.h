@@ -11,15 +11,15 @@ struct hid_device_info;
 
 struct hid_device_info
 {
-    LPTSTR path;
-    LPTSTR description;
+    LPWSTR path;
+    LPWSTR description;
 
     struct hid_device_info *next;
 };
 
 struct hid_device
 {
-    LPTSTR path;
+    LPWSTR path;
     HANDLE handle;
 
     BOOL read_pending;
@@ -37,14 +37,13 @@ struct hid_device
 };
 
 GUID hid_get_class();
-struct hid_device_info *hid_enumerate(const LPTSTR *path_filters);
-BOOL hid_reenable_device(LPTSTR path);
-BOOL check_vendor_and_product(LPTSTR path, USHORT vendor_id, USHORT product_id);
+struct hid_device_info *hid_enumerate(const LPWSTR *path_filters);
+BOOL hid_reenable_device(LPWSTR path);
+BOOL check_vendor_and_product(LPWSTR path, USHORT vendor_id, USHORT product_id);
 void hid_free_device_info(struct hid_device_info *device_info);
-struct hid_device *hid_open_device(LPTSTR path, BOOL access_rw, BOOL shared);
+struct hid_device *hid_open_device(LPWSTR path, BOOL access_rw, BOOL shared);
 INT hid_get_input_report(struct hid_device *device, DWORD timeout);
 INT hid_send_output_report(struct hid_device *device, const void *data, size_t length, DWORD timeout);
-INT hid_send_feature_report(struct hid_device *device, const void *data, size_t length);
 void hid_close_device(struct hid_device *device);
 void hid_free_device(struct hid_device *device);
 

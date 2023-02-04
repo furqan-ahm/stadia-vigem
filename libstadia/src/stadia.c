@@ -8,7 +8,6 @@
 
 #include <stdio.h>
 #include <synchapi.h>
-#include <tchar.h>
 #include <windows.h>
 
 #pragma comment(lib, "kernel32.lib")
@@ -102,7 +101,7 @@ static DWORD WINAPI _stadia_output_thread(LPVOID lparam)
 
     while (controller->active)
     {
-        DWORD wait_result = WaitForMultipleObjects(2, wait_events, FALSE, INFINITE);
+        WaitForMultipleObjects(2, wait_events, FALSE, INFINITE);
 
         AcquireSRWLockShared(&controller->vibration_lock);
 

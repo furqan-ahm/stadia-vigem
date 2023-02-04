@@ -19,14 +19,14 @@ struct tray_menu;
 
 struct tray
 {
-    LPTSTR icon;
-    LPTSTR tip;
+    LPWSTR icon;
+    LPWSTR tip;
     struct tray_menu *menu;
 };
 
 struct tray_menu
 {
-    LPTSTR text;
+    LPWSTR text;
     BOOLEAN disabled;
     BOOLEAN checked;
 
@@ -40,7 +40,7 @@ int tray_init(struct tray *tray);
 int tray_loop(BOOLEAN blocking);
 void tray_update(struct tray *tray);
 void tray_exit();
-void tray_register_device_notification(GUID filter, void (*cb)(UINT, LPTSTR));
-void tray_show_notification(UINT type, LPTSTR title, LPTSTR text);
+void tray_register_device_notification(GUID filter, void (*cb)());
+void tray_show_notification(UINT type, LPWSTR title, LPWSTR text);
 
 #endif /* TRAY_H */

@@ -7,12 +7,10 @@
 
 #include <wtypes.h>
 
-#define STADIA_USB_HW_VENDOR_ID             0x18D1
-#define STADIA_USB_HW_PRODUCT_ID            0x9400
-#define STADIA_USB_HW_FILTER                TEXT("VID_18D1&PID_9400")
+#define STADIA_HW_VENDOR_ID                 0x18D1
+#define STADIA_HW_PRODUCT_ID                0x9400
 
-#define STADIA_BLT_HW_VENDOR_ID             0x18D1
-#define STADIA_BLT_HW_PRODUCT_ID            0x9400
+#define STADIA_USB_HW_FILTER                TEXT("VID_18D1&PID_9400")
 #define STADIA_BLT_HW_FILTER                TEXT("vid&0218d1_pid&9400")
 
 #define STADIA_BUTTON_NONE                  0b00000000000000000
@@ -74,7 +72,7 @@ struct stadia_controller
 };
 
 void (*stadia_update_callback)(struct stadia_controller *, struct stadia_state *);
-void (*stadia_destroy_callback)(struct stadia_controller *, BYTE break_reason);
+void (*stadia_destroy_callback)(struct stadia_controller *, BYTE);
 
 struct stadia_controller *stadia_controller_create(struct hid_device *device);
 void stadia_controller_set_vibration(struct stadia_controller *controller, BYTE small_motor, BYTE big_motor);

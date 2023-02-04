@@ -7,6 +7,6 @@
 
 #include <wtypes.h>
 
-PTCHAR _tcsistr(PTCHAR haystack, const PTCHAR needle);
+PWCHAR wcsistr(PWCHAR haystack, const PWCHAR needle);
 
 #endif /* UTILS_H */

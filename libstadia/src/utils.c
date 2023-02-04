@@ -6,20 +6,20 @@
 
 #include "utils.h"
 
-PTCHAR _tcsistr(PTCHAR haystack, const PTCHAR needle)
+PWCHAR wcsistr(PWCHAR haystack, const PWCHAR needle)
 {
     do
     {
-        PTCHAR h = haystack;
-        PTCHAR n = needle;
-        while (tolower((TBYTE)*h) == tolower((TBYTE)*n) && *n)
+        PWCHAR h = haystack;
+        PWCHAR n = needle;
+        while (tolower((WCHAR)*h) == tolower((WCHAR)*n) && *n)
         {
             h++;
             n++;
         }
         if (*n == 0)
         {
-            return (PTCHAR)haystack;
+            return (PWCHAR)haystack;
         }
     } while (*haystack++);
     return NULL;
