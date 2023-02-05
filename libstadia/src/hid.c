@@ -114,8 +114,9 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
                     }
 
                     struct hid_device_info *dev = (struct hid_device_info *)malloc(sizeof(struct hid_device_info));
-                    dev->path = (LPWSTR)malloc((wcslen(device_interface_detail_data->DevicePath) + 1) * sizeof(WCHAR));
-                    wcscpy(dev->path, device_interface_detail_data->DevicePath);
+                    size_t path_length = wcslen(device_interface_detail_data->DevicePath) + 1;
+                    dev->path = (LPWSTR)malloc(path_length * sizeof(WCHAR));
+                    wcscpy_s(dev->path, path_length, device_interface_detail_data->DevicePath);
                     dev->description = desc_buffer;
                     dev->next = NULL;
 
@@ -265,8 +266,9 @@ struct hid_device *hid_open_device(LPTSTR path, BOOL access_rw, BOOL shared)
     }
 
     struct hid_device *dev = (struct hid_device *)malloc(sizeof(struct hid_device));
-    dev->path = (LPWSTR)malloc((wcslen(path) + 1) * sizeof(WCHAR));
-    wcscpy(dev->path, path);
+    size_t path_length = wcslen(path) + 1;
+    dev->path = (LPWSTR)malloc(path_length * sizeof(WCHAR));
+    wcscpy_s(dev->path, path_length, path);
     dev->handle = handle;
     dev->read_pending = FALSE;
     dev->input_report_size = caps.InputReportByteLength;

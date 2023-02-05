@@ -112,7 +112,7 @@ function Invoke-Build-Service {
 
     & "mc.exe" -U service/res/messages.mc -h service/include/ -r service/res/generated
     & "rc.exe" /Foobj/service/Stadia-ViGEm.Service.Messages.res service/res/generated/messages.rc
-    & "link.exe" -dll -noentry -out:bin/$ResourceDllName obj/service/Stadia-ViGEm.Service.Messages.res
+    & "link.exe" -dll -noentry -out:bin/$ResourceDllName /MACHINE:$Architecture obj/service/Stadia-ViGEm.Service.Messages.res
     
     & "rc.exe" /foobj/service/Stadia-ViGEm.Service.res service/res/res.rc
     & "cl.exe" $Flags $CommonFlags /Ilibstadia/include /IViGEmClient/include /Iservice/include /Foobj/service/ /Febin/$OutputName ViGEmClient/src/*.cpp obj/service/Stadia-ViGEm.Service.res service/src/*.c $LibraryPath

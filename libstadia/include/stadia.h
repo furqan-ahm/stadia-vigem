@@ -10,8 +10,8 @@
 #define STADIA_HW_VENDOR_ID                 0x18D1
 #define STADIA_HW_PRODUCT_ID                0x9400
 
-#define STADIA_USB_HW_FILTER                TEXT("VID_18D1&PID_9400")
-#define STADIA_BLT_HW_FILTER                TEXT("vid&0218d1_pid&9400")
+#define STADIA_USB_HW_FILTER                L"VID_18D1&PID_9400"
+#define STADIA_BLT_HW_FILTER                L"vid&0218d1_pid&9400"
 
 #define STADIA_BUTTON_NONE                  0b00000000000000000
 #define STADIA_BUTTON_A                     0b00000000000000001

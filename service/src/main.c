@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <tchar.h>
 #include <strsafe.h>
 #include <processthreadsapi.h>
 #include <dbt.h>
@@ -33,7 +32,7 @@ VOID SvcReportEvent( LPTSTR );
 // Return value:
 //   None, defaults to 0 (zero)
 //
-int __cdecl _tmain(int argc, TCHAR *argv[]) 
+int __cdecl wmain(int argc, WCHAR *argv[]) 
 { 
     if (argc < 1) 
         return; 
@@ -43,17 +42,17 @@ int __cdecl _tmain(int argc, TCHAR *argv[])
     // If command-line parameter is "debug", start service in console. 
     // Otherwise, the service is probably being started by the SCM.
 
-    if( lstrcmpi( argv[1], TEXT("install")) == 0 )
+    if( lstrcmpi( argv[1], L"install") == 0 )
     {
         SvcInstall();
         return;
     }
-    else if( lstrcmpi( argv[1], TEXT("uninstall")) == 0 )
+    else if( lstrcmpi( argv[1], L"uninstall") == 0 )
     {
         SvcUninstall();
         return;
     }
-    else if ( lstrcmpi( argv[1], TEXT("debug")) == 0 )
+    else if ( lstrcmpi( argv[1], L"debug") == 0 )
     {
         int init_result = service_init(NULL);
         if (init_result != 0)
@@ -78,7 +77,7 @@ int __cdecl _tmain(int argc, TCHAR *argv[])
 
     if (!StartServiceCtrlDispatcher( DispatchTable )) 
     { 
-        SvcReportEvent(TEXT("StartServiceCtrlDispatcher")); 
+        SvcReportEvent(L"StartServiceCtrlDispatcher"); 
     } 
 } 
 
@@ -96,7 +95,7 @@ VOID SvcInstall()
 {
     SC_HANDLE schSCManager;
     SC_HANDLE schService;
-    TCHAR szPath[MAX_PATH];
+    WCHAR szPath[MAX_PATH];
 
     if(!GetModuleFileName(NULL, szPath, MAX_PATH ) )
     {
@@ -142,7 +141,7 @@ VOID SvcInstall()
     }
 
     SERVICE_DESCRIPTION sd;
-    LPTSTR szDesc = TEXT("Manages Stadia controllers attached to the system and processes their input into virtual Xbox 360 controllers.");
+    LPTSTR szDesc = L"Manages Stadia controllers attached to the system and processes their input into virtual Xbox 360 controllers.";
 
     sd.lpDescription = szDesc;
 
@@ -174,7 +173,7 @@ VOID SvcUninstall()
 {
     SC_HANDLE schSCManager;
     SC_HANDLE schService;
-    TCHAR szPath[MAX_PATH];
+    WCHAR szPath[MAX_PATH];
 
     if(!GetModuleFileName(NULL, szPath, MAX_PATH ) )
     {
@@ -241,7 +240,7 @@ VOID WINAPI SvcMain()
 
     if( !gSvcStatusHandle )
     { 
-        SvcReportEvent(TEXT("RegisterServiceCtrlHandler")); 
+        SvcReportEvent(L"RegisterServiceCtrlHandler"); 
         return; 
     } 
 
@@ -402,13 +401,13 @@ VOID SvcReportEvent(LPTSTR szFunction)
 { 
     HANDLE hEventSource;
     LPCTSTR lpszStrings[2];
-    TCHAR Buffer[80];
+    WCHAR Buffer[80];
 
     hEventSource = RegisterEventSource(NULL, SVCNAME);
 
     if( NULL != hEventSource )
     {
-        StringCchPrintf(Buffer, 80, TEXT("%s failed with %d"), szFunction, GetLastError());
+        StringCchPrintf(Buffer, 80, L"%s failed with %d", szFunction, GetLastError());
 
         lpszStrings[0] = SVCNAME;
         lpszStrings[1] = Buffer;

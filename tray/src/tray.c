@@ -12,31 +12,34 @@
 #pragma comment(lib, "shell32.lib")
 
 #define WM_TRAY_CALLBACK_MESSAGE (WM_USER + 1)
-#define WC_TRAY_CLASS_NAME TEXT("StadiaViGEmClass")
-#define WC_TRAY_MUTEX_NAME TEXT("Stadia Controller")
+#define WC_TRAY_CLASS_NAME L"StadiaViGEmClass"
+#define WC_TRAY_MUTEX_NAME L"Stadia Controller"
 #define ID_TRAY_FIRST 1000
 
-static WNDCLASSEX wc;
-static NOTIFYICONDATA nid;
+static WNDCLASSEX wnd_class;
+static NOTIFYICONDATA notify_icon_data;
 static HWND window_handle = NULL;
-static HMENU hmenu = NULL;
-static HANDLE hmutex;
-static HDEVNOTIFY hdevntf;
-static void (*devntf_cb)() = NULL;
+static HMENU menu_handle = NULL;
+static HANDLE mutex_handle;
+static HDEVNOTIFY dev_notify_handle;
+static void (*dev_notify_callback)() = NULL;
 
 static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     switch (msg)
     {
     case WM_CLOSE:
-        if (hdevntf != NULL)
+        if (dev_notify_handle != NULL)
         {
-            UnregisterDeviceNotification(hdevntf);
+            UnregisterDeviceNotification(dev_notify_handle);
         }
+
         DestroyWindow(hwnd);
+
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
+
         return 0;
     case WM_TRAY_CALLBACK_MESSAGE:
         if (lparam == WM_LBUTTONUP || lparam == WM_RBUTTONUP)
@@ -44,9 +47,10 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARA
             POINT p;
             GetCursorPos(&p);
             SetForegroundWindow(hwnd);
-            BOOL cmd = TrackPopupMenu(hmenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
+            BOOL cmd = TrackPopupMenu(menu_handle, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
                                       p.x, p.y, 0, hwnd, NULL);
             SendMessage(hwnd, WM_COMMAND, cmd, 0);
+
             return 0;
         }
         break;
@@ -57,7 +61,8 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARA
                 .cbSize = sizeof(MENUITEMINFO),
                 .fMask = MIIM_ID | MIIM_DATA,
             };
-            if (GetMenuItemInfo(hmenu, (UINT)wparam, FALSE, &item))
+
+            if (GetMenuItemInfo(menu_handle, (UINT)wparam, FALSE, &item))
             {
                 struct tray_menu *menu = (struct tray_menu *)item.dwItemData;
                 if (menu != NULL && menu->cb != NULL)
@@ -65,29 +70,14 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARA
                     menu->cb(menu);
                 }
             }
+
             return 0;
         }
         break;
     case WM_DEVICECHANGE:
-        if (devntf_cb != NULL)
+        if (dev_notify_callback != NULL)
         {
-            UINT op = DO_TRAY_UNKNOWN;
-            switch (wparam)
-            {
-            case DBT_DEVICEARRIVAL:
-                op = DO_TRAY_DEV_ATTACHED;
-                break;
-            case DBT_DEVICEREMOVECOMPLETE:
-                op = DO_TRAY_DEV_REMOVED;
-                break;
-            }
-            LPWSTR path = NULL;
-            if (lparam != 0)
-            {
-                PDEV_BROADCAST_DEVICEINTERFACE bdi = (PDEV_BROADCAST_DEVICEINTERFACE)lparam;
-                path = bdi->dbcc_name;
-            }
-            devntf_cb();
+            dev_notify_callback();
         }
         break;
     }
@@ -99,9 +89,9 @@ static HMENU _tray_menu(struct tray_menu *m, UINT *id)
     HMENU new_menu = CreatePopupMenu();
     for (; m != NULL && m->text != NULL; m++, (*id)++)
     {
-        if (wcscmp(m->text, TEXT("-")) == 0)
+        if (wcscmp(m->text, L"-") == 0)
         {
-            InsertMenu(new_menu, *id, MF_SEPARATOR, TRUE, TEXT(""));
+            InsertMenu(new_menu, *id, MF_SEPARATOR, TRUE, L"");
         }
         else
         {
@@ -136,18 +126,18 @@ static HMENU _tray_menu(struct tray_menu *m, UINT *id)
 
 int tray_init(struct tray *tray)
 {
-    hmutex = CreateMutex(NULL, TRUE, WC_TRAY_MUTEX_NAME);
-    if (hmutex == NULL)
+    mutex_handle = CreateMutex(NULL, TRUE, WC_TRAY_MUTEX_NAME);
+    if (mutex_handle == NULL)
     {
         return -1;
     }
 
-    memset(&wc, 0, sizeof(wc));
-    wc.cbSize = sizeof(WNDCLASSEX);
-    wc.lpfnWndProc = _tray_wnd_proc;
-    wc.hInstance = GetModuleHandle(NULL);
-    wc.lpszClassName = WC_TRAY_CLASS_NAME;
-    if (!RegisterClassEx(&wc))
+    memset(&wnd_class, 0, sizeof(wnd_class));
+    wnd_class.cbSize = sizeof(WNDCLASSEX);
+    wnd_class.lpfnWndProc = _tray_wnd_proc;
+    wnd_class.hInstance = GetModuleHandle(NULL);
+    wnd_class.lpszClassName = WC_TRAY_CLASS_NAME;
+    if (!RegisterClassEx(&wnd_class))
     {
         return -1;
     }
@@ -159,13 +149,13 @@ int tray_init(struct tray *tray)
     }
     UpdateWindow(window_handle);
 
-    memset(&nid, 0, sizeof(nid));
-    nid.cbSize = sizeof(NOTIFYICONDATA);
-    nid.hWnd = window_handle;
-    nid.uID = 0;
-    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-    nid.uCallbackMessage = WM_TRAY_CALLBACK_MESSAGE;
-    Shell_NotifyIcon(NIM_ADD, &nid);
+    memset(&notify_icon_data, 0, sizeof(notify_icon_data));
+    notify_icon_data.cbSize = sizeof(NOTIFYICONDATA);
+    notify_icon_data.hWnd = window_handle;
+    notify_icon_data.uID = 0;
+    notify_icon_data.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    notify_icon_data.uCallbackMessage = WM_TRAY_CALLBACK_MESSAGE;
+    Shell_NotifyIcon(NIM_ADD, &notify_icon_data);
 
     tray_update(tray);
     return 0;
@@ -182,60 +172,69 @@ int tray_loop(BOOLEAN blocking)
     {
         PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
     }
+
     if (msg.message == WM_QUIT)
     {
         return -1;
     }
+
     TranslateMessage(&msg);
     DispatchMessage(&msg);
+
     return 0;
 }
 
 void tray_update(struct tray *tray)
 {
-    HMENU prevmenu = hmenu;
     UINT id = ID_TRAY_FIRST;
-    hmenu = _tray_menu(tray->menu, &id);
-    SendMessage(window_handle, WM_INITMENUPOPUP, (WPARAM)hmenu, 0);
-    HICON hicon = LoadIcon(wc.hInstance, tray->icon);
-    if (nid.hIcon)
-    {
-        DestroyIcon(nid.hIcon);
-    }
-    nid.hIcon = hicon;
-    wcscpy(nid.szTip, tray->tip);
-    Shell_NotifyIcon(NIM_MODIFY, &nid);
 
-    if (prevmenu != NULL)
+    HMENU prev_menu_handle = menu_handle;
+    menu_handle = _tray_menu(tray->menu, &id);
+
+    SendMessage(window_handle, WM_INITMENUPOPUP, (WPARAM)menu_handle, 0);
+
+    HICON icon_handle = LoadIcon(wnd_class.hInstance, tray->icon);
+    if (notify_icon_data.hIcon)
     {
-        DestroyMenu(prevmenu);
+        DestroyIcon(notify_icon_data.hIcon);
+    }
+    notify_icon_data.hIcon = icon_handle;
+
+    const int szTip_length = sizeof(notify_icon_data.szTip) / sizeof(WCHAR);
+    wcscpy_s(notify_icon_data.szTip, szTip_length, tray->tip);
+
+    Shell_NotifyIcon(NIM_MODIFY, &notify_icon_data);
+
+    if (prev_menu_handle != NULL)
+    {
+        DestroyMenu(prev_menu_handle);
     }
 }
 
 void tray_exit()
 {
-    Shell_NotifyIcon(NIM_DELETE, &nid);
-    if (nid.hIcon != 0)
+    Shell_NotifyIcon(NIM_DELETE, &notify_icon_data);
+
+    if (notify_icon_data.hIcon != 0)
     {
-        DestroyIcon(nid.hIcon);
+        DestroyIcon(notify_icon_data.hIcon);
     }
-    if (hmenu != 0)
+    if (menu_handle != 0)
     {
-        DestroyMenu(hmenu);
+        DestroyMenu(menu_handle);
     }
+
     PostQuitMessage(0);
     window_handle = NULL;
     UnregisterClass(WC_TRAY_CLASS_NAME, GetModuleHandle(NULL));
-    ReleaseMutex(hmutex);
-    CloseHandle(hmutex);
+    ReleaseMutex(mutex_handle);
+    CloseHandle(mutex_handle);
 }
 
 void tray_register_device_notification(GUID filter, void (*cb)())
 {
     if (window_handle == NULL)
-    {
         return;
-    }
 
     DEV_BROADCAST_DEVICEINTERFACE dbdi;
     memset(&dbdi, 0, sizeof(dbdi));
@@ -243,10 +242,10 @@ void tray_register_device_notification(GUID filter, void (*cb)())
     dbdi.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
     dbdi.dbcc_classguid = filter;
 
-    hdevntf = RegisterDeviceNotification(window_handle, &dbdi, DEVICE_NOTIFY_WINDOW_HANDLE);
-    if (hdevntf != NULL)
+    dev_notify_handle = RegisterDeviceNotification(window_handle, &dbdi, DEVICE_NOTIFY_WINDOW_HANDLE);
+    if (dev_notify_handle != NULL)
     {
-        devntf_cb = cb;
+        dev_notify_callback = cb;
     }
 }
 
@@ -258,10 +257,15 @@ void tray_show_notification(UINT type, LPWSTR title, LPWSTR text)
     }
 
     NOTIFYICONDATA nid_info;
-    memmove(&nid_info, &nid, sizeof(NOTIFYICONDATA));
+    memmove(&nid_info, &notify_icon_data, sizeof(NOTIFYICONDATA));
     nid_info.uFlags |= NIF_INFO;
-    wcscpy(nid_info.szInfoTitle, title);
-    wcscpy(nid_info.szInfo, text);
+
+    const int szInfoTitle_length = sizeof(nid_info.szInfoTitle) / sizeof(WCHAR);
+    wcscpy_s(nid_info.szInfoTitle, szInfoTitle_length, title);
+    
+    const int szInfo_length = sizeof(nid_info.szInfo) / sizeof(WCHAR);
+    wcscpy_s(nid_info.szInfo, szInfo_length, text);
+
     switch (type)
     {
     case NT_TRAY_INFO:

@@ -1,7 +1,7 @@
 #ifndef SERVICE_H
 #define SERVICE_H
 
-#define SVCNAME TEXT("Stadia-ViGEm Controller Service")
+#define SVCNAME L"Stadia-ViGEm Controller Service"
 
 int service_init(HANDLE service);
 

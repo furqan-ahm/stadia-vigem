@@ -18,7 +18,7 @@
 #endif
 
 #define MAX_ACTIVE_DEVICE_COUNT 4
-#define DEVICE_COUNT_TEMPLATE TEXT("%d/4 device(s) connected")
+#define DEVICE_COUNT_TEMPLATE L"%d/4 device(s) connected"
 
 struct active_device
 {
@@ -44,14 +44,14 @@ static void CALLBACK x360_notification_cb(PVIGEM_CLIENT client, PVIGEM_TARGET ta
 static void refresh_cb(struct tray_menu *item);
 static void quit_cb(struct tray_menu *item);
 
-static const struct tray_menu tray_menu_refresh = {.text = TEXT("Refresh"), .cb = refresh_cb};
-static const struct tray_menu tray_menu_quit = {.text = TEXT("Quit"), .cb = quit_cb};
-static const struct tray_menu tray_menu_separator = {.text = TEXT("-")};
+static const struct tray_menu tray_menu_refresh = {.text = L"Refresh", .cb = refresh_cb};
+static const struct tray_menu tray_menu_quit = {.text = L"Quit", .cb = quit_cb};
+static const struct tray_menu tray_menu_separator = {.text = L"-"};
 static const struct tray_menu tray_menu_terminator = {.text = NULL};
 static struct tray tray =
     {
-        .icon = TEXT("APP_ICON"),
-        .tip = TEXT("Stadia Controller"),
+        .icon = L"APP_ICON",
+        .tip = L"Stadia Controller",
         .menu = NULL};
 
 SHORT FORCEINLINE _map_byte_to_short(BYTE value, BOOL inverted)
@@ -81,7 +81,7 @@ static void rebuild_tray_menu()
 
     INT tray_text_length = _scwprintf(DEVICE_COUNT_TEMPLATE, active_device_count);
     tray_menu_device_count.text = (LPWSTR)malloc((tray_text_length + 1) * sizeof(WCHAR));
-    wsprintf(tray_menu_device_count.text, DEVICE_COUNT_TEMPLATE, active_device_count);
+    swprintf_s(tray_menu_device_count.text, tray_text_length + 1, DEVICE_COUNT_TEMPLATE, active_device_count);
 
     free(old_device_count_text);
 
@@ -101,8 +101,8 @@ static BOOL add_device(LPWSTR path)
 {
     if (active_device_count == MAX_ACTIVE_DEVICE_COUNT)
     {
-        tray_show_notification(NT_TRAY_WARNING, TEXT("Stadia Controller error"),
-                               TEXT("Device count limit reached"));
+        tray_show_notification(NT_TRAY_WARNING, L"Stadia Controller error",
+                               L"Device count limit reached");
         return FALSE;
     }
 
@@ -125,16 +125,16 @@ static BOOL add_device(LPWSTR path)
 
     if (device == NULL)
     {
-        tray_show_notification(NT_TRAY_WARNING, TEXT("Stadia Controller error"),
-                               TEXT("Error opening new device"));
+        tray_show_notification(NT_TRAY_WARNING, L"Stadia Controller error",
+                               L"Error opening new device");
         return FALSE;
     }
 
     struct stadia_controller *controller = stadia_controller_create(device);
     if (controller == NULL)
     {
-        tray_show_notification(NT_TRAY_WARNING, TEXT("Stadia Controller error"),
-                               TEXT("Error initializing new device"));
+        tray_show_notification(NT_TRAY_WARNING, L"Stadia Controller error",
+                               L"Error initializing new device");
         hid_close_device(device);
         hid_free_device(device);
         return FALSE;
@@ -162,8 +162,8 @@ static BOOL add_device(LPWSTR path)
 
     if (!vigem_connected)
     {
-        tray_show_notification(NT_TRAY_WARNING, TEXT("Stadia Controller error"),
-                               TEXT("Device added, but emulation doesn't work due to ViGEmBus problem"));
+        tray_show_notification(NT_TRAY_WARNING, L"Stadia Controller error",
+                               L"Device added, but emulation doesn't work due to ViGEmBus problem");
     }
 
     return TRUE;
@@ -373,18 +373,18 @@ INT main()
     VIGEM_ERROR vigem_res = vigem_connect(vigem_client);
     if (vigem_res == VIGEM_ERROR_BUS_NOT_FOUND)
     {
-        tray_show_notification(NT_TRAY_ERROR, TEXT("Stadia Controller error"),
-                               TEXT("ViGEmBus not installed"));
+        tray_show_notification(NT_TRAY_ERROR, L"Stadia Controller error",
+                               L"ViGEmBus not installed");
     }
     else if (vigem_res == VIGEM_ERROR_BUS_VERSION_MISMATCH)
     {
-        tray_show_notification(NT_TRAY_ERROR, TEXT("Stadia Controller error"),
-                               TEXT("ViGEmBus incompatible version"));
+        tray_show_notification(NT_TRAY_ERROR, L"Stadia Controller error",
+                               L"ViGEmBus incompatible version");
     }
     else if (vigem_res != VIGEM_ERROR_NONE)
     {
-        tray_show_notification(NT_TRAY_ERROR, TEXT("Stadia Controller error"),
-                               TEXT("Error connecting to ViGEmBus"));
+        tray_show_notification(NT_TRAY_ERROR, L"Stadia Controller error",
+                               L"Error connecting to ViGEmBus");
     }
     else
     {
