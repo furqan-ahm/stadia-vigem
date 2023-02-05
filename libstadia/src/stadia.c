@@ -17,9 +17,9 @@
 /*
  * Stadia controller vibration output report identifier.
  */
-#define STADIA_VIBRATION_IDENTIFIER 0x05
+#define STADIA_OUTPUT_REPORT_ID 0x05
 
-static const BYTE init_vibration[5] = {STADIA_VIBRATION_IDENTIFIER, 0x00, 0x00, 0x00, 0x00};
+static const BYTE reset_vibration[5] = {STADIA_OUTPUT_REPORT_ID, 0x00, 0x00, 0x00, 0x00};
 
 static const DWORD dpad_map[8] =
     {
@@ -95,7 +95,7 @@ static DWORD WINAPI _stadia_output_thread(LPVOID lparam)
 {
     struct stadia_controller *controller = (struct stadia_controller *)lparam;
 
-    BYTE vibration[5] = {STADIA_VIBRATION_IDENTIFIER, 0x0, 0x0, 0x0, 0x0};
+    BYTE vibration[5] = {STADIA_OUTPUT_REPORT_ID, 0x00, 0x00, 0x00, 0x00};
 
     HANDLE wait_events[2] = {controller->output_event, controller->stopping_event};
 
@@ -115,14 +115,14 @@ static DWORD WINAPI _stadia_output_thread(LPVOID lparam)
         ResetEvent(controller->output_event);
     }
 
-    hid_send_output_report(controller->device, init_vibration, sizeof(init_vibration), STADIA_READ_TIMEOUT);
+    hid_send_output_report(controller->device, reset_vibration, sizeof(reset_vibration), STADIA_READ_TIMEOUT);
 
     return 0;
 }
 
 struct stadia_controller *stadia_controller_create(struct hid_device *device)
 {
-    if (!hid_send_output_report(device, init_vibration, sizeof(init_vibration), STADIA_READ_TIMEOUT) <= 0)
+    if (!hid_send_output_report(device, reset_vibration, sizeof(reset_vibration), STADIA_READ_TIMEOUT) <= 0)
     {
         // Don't error out for now.
         // TODO: Fix vibration for bluetooth controllers.

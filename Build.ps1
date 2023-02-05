@@ -115,7 +115,7 @@ function Invoke-Build-Service {
     & "link.exe" -dll -noentry -out:bin/$ResourceDllName /MACHINE:$Architecture obj/service/Stadia-ViGEm.Service.Messages.res
     
     & "rc.exe" /foobj/service/Stadia-ViGEm.Service.res service/res/res.rc
-    & "cl.exe" $Flags $CommonFlags /Ilibstadia/include /IViGEmClient/include /Iservice/include /Foobj/service/ /Febin/$OutputName ViGEmClient/src/*.cpp obj/service/Stadia-ViGEm.Service.res service/src/*.c $LibraryPath
+    & "cl.exe" $Flags $CommonFlags /Ilibstadia/include /IViGEmClient/include /Iservice/include /Foobj/service/ /Febin/$OutputName ViGEmClient/src/*.cpp obj/service/Stadia-ViGEm.Service.res service/src/*.c $LibraryPath Shlwapi.lib
 
     $StopWatch.Stop()
 
@@ -140,7 +140,7 @@ function Invoke-Build-Tray {
     $StopWatch.Start()
 
     & "rc.exe" /foobj/tray/tray.res tray/res/res.rc
-    & "cl.exe" $Flags $CommonFlags /Ilibstadia/include /IViGEmClient/include /Itray/include /Foobj/tray/ /Febin/$OutputName ViGEmClient/src/*.cpp obj/tray/tray.res tray/src/*.c $LibraryPath
+    & "cl.exe" $Flags $CommonFlags /Ilibstadia/include /IViGEmClient/include /Itray/include /Foobj/tray/ /Febin/$OutputName ViGEmClient/src/*.cpp obj/tray/tray.res tray/src/*.c $LibraryPath Shlwapi.lib
 
     $StopWatch.Stop()
 

@@ -4,14 +4,13 @@
 
 #include "hid.h"
 
-#include "utils.h"
-
 #include <initguid.h>
 #include <windows.h>
 #include <hidsdi.h>
 #include <setupapi.h>
 #include <devpkey.h>
 #include <cfgmgr32.h>
+#include <shlwapi.h>
 
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "hid.lib")
@@ -31,7 +30,7 @@ GUID hid_get_class()
     return hid_class;
 }
 
-struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
+struct hid_device_info *hid_enumerate(const LPWSTR *path_filters)
 {
     struct hid_device_info *root_dev = NULL;
     struct hid_device_info *cur_dev = NULL;
@@ -43,7 +42,7 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
     HDEVINFO device_info_set = INVALID_HANDLE_VALUE;
     DWORD required_size = 0;
     DEVPROPTYPE prop_type;
-    LPTSTR desc_buffer = NULL;
+    LPWSTR desc_buffer = NULL;
     LPWSTR desc_buffer_w = NULL;
 
     memset(&devinfo_data, 0x0, sizeof(devinfo_data));
@@ -72,9 +71,9 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
                 if (path_filters != NULL)
                 {
                     matched = FALSE;
-                    for (const LPTSTR *pfilter = path_filters; *pfilter != NULL; pfilter++)
+                    for (const LPWSTR *pfilter = path_filters; *pfilter != NULL; pfilter++)
                     {
-                        if (wcsstr(device_interface_detail_data->DevicePath, *pfilter) != NULL)
+                        if (StrStrIW(device_interface_detail_data->DevicePath, *pfilter) != NULL)
                         {
                             matched = TRUE;
                             break;
@@ -106,7 +105,7 @@ struct hid_device_info *hid_enumerate(const LPTSTR *path_filters)
                                                              NULL, NULL, 0, &required_size) ||
                             GetLastError() == ERROR_INSUFFICIENT_BUFFER)
                         {
-                            desc_buffer = (LPTSTR)malloc(required_size);
+                            desc_buffer = (LPWSTR)malloc(required_size);
                             memset(desc_buffer, 0, required_size);
                             SetupDiGetDeviceRegistryProperty(device_info_set, &devinfo_data, SPDRP_DEVICEDESC,
                                                              NULL, (PBYTE)desc_buffer, required_size, NULL);
