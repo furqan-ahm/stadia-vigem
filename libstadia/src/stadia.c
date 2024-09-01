@@ -66,6 +66,9 @@ static DWORD WINAPI _stadia_input_thread(LPVOID lparam)
         controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 6)) != 0 ? STADIA_BUTTON_OPTIONS : 0;
         controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 5)) != 0 ? STADIA_BUTTON_MENU : 0;
         controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 4)) != 0 ? STADIA_BUTTON_STADIA_BTN : 0;
+        controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 1)) != 0 ? STADIA_BUTTON_ASSISTANT : 0;
+        controller->state.buttons |= (controller->device->input_buffer[2] & (1 << 0)) != 0 ? STADIA_BUTTON_CAPTURE : 0;
+
 
         controller->state.buttons |= (controller->device->input_buffer[3] & (1 << 6)) != 0 ? STADIA_BUTTON_A : 0;
         controller->state.buttons |= (controller->device->input_buffer[3] & (1 << 5)) != 0 ? STADIA_BUTTON_B : 0;
