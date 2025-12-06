@@ -13,6 +13,7 @@
 #include "tray.h"
 #include "hid.h"
 #include "stadia.h"
+#include "hidhide.h"
 
 #ifndef _DEBUG
 #pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
@@ -27,6 +28,7 @@ struct active_device
     struct stadia_controller *controller;
     PVIGEM_TARGET tgt_device;
     XUSB_REPORT tgt_report;
+    LPWSTR hidden_instance_id;  // Device Instance ID for HidHide (NULL if not hidden)
 };
 
 static int active_device_count = 0;
@@ -144,6 +146,21 @@ static BOOL add_device(LPTSTR path)
     struct active_device *active_device = (struct active_device *)malloc(sizeof(struct active_device));
     active_device->src_device = device;
     active_device->controller = controller;
+    active_device->hidden_instance_id = NULL;
+
+    // Hide the device from other applications using HidHide
+    LPWSTR instance_id = hid_get_device_instance_id(path);
+    if (instance_id != NULL)
+    {
+        if (hidhide_hide_device(instance_id))
+        {
+            active_device->hidden_instance_id = instance_id;
+        }
+        else
+        {
+            free(instance_id);
+        }
+    }
 
     if (vigem_connected)
     {
@@ -180,6 +197,14 @@ static BOOL remove_device(struct stadia_controller *controller)
     {
         if (active_devices[i]->controller == controller)
         {
+            // Unhide the device before removing it
+            if (active_devices[i]->hidden_instance_id != NULL)
+            {
+                hidhide_unhide_device(active_devices[i]->hidden_instance_id);
+                free(active_devices[i]->hidden_instance_id);
+                active_devices[i]->hidden_instance_id = NULL;
+            }
+
             hid_close_device(active_devices[i]->src_device);
             hid_free_device(active_devices[i]->src_device);
 
@@ -388,6 +413,16 @@ INT main()
         vigem_connected = TRUE;
     }
 
+    // Initialize HidHide integration (if available)
+    if (hidhide_available())
+    {
+        if (!hidhide_init())
+        {
+            tray_show_notification(NT_TRAY_WARNING, TEXT("Stadia Controller"),
+                TEXT("HidHide init failed - double input may occur"));
+        }
+    }
+
     stadia_update_callback = stadia_controller_update_cb;
     stadia_destroy_callback = stadia_controller_stop_cb;
 
@@ -419,6 +454,10 @@ INT main()
         vigem_disconnect(vigem_client);
     }
     vigem_free(vigem_client);
+
+    // Cleanup HidHide (unhides all devices)
+    hidhide_cleanup();
+
     free(tray.menu);
     return 0;
 }

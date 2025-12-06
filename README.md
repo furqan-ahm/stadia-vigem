@@ -11,8 +11,25 @@ Xbox 360 controller emulation driver is provided by ViGEm (https://github.com/Vi
 Stadia-ViGEm program at start scans for Stadia Controllers and then proxies found Stadia Controllers to virtual Xbox 360 gamepads (with help from ViGEmBus). Also Stadia-ViGEm subscribes to system device plug/unplug notifications and rescans for devices on each notification.
 All found devices are displayed in the tray icon context menu. Manual device rescan can be initiated via the tray icon context menu.
 
-## Double input
-Stadia-ViGEm creates a virtual Xbox 360 controller which results in double input issues when some applications will read input from both the virtual and the real Stadia controller. To avoid this, install [HidHide](https://github.com/ViGEm/HidHide) and configure it as follows:
+## Double input (Automatic HidHide Integration)
+
+Stadia-ViGEm creates a virtual Xbox 360 controller which can result in double input issues when some applications read input from both the virtual and the real Stadia controller.
+
+### Automatic Solution (Recommended)
+
+If you have [HidHide](https://github.com/ViGEm/HidHide) installed, Stadia-ViGEm will **automatically**:
+- Hide the Stadia controller when it connects (so games only see the virtual Xbox controller)
+- Unhide the controller when it disconnects or when Stadia-ViGEm exits
+
+This means you don't need to manually configure HidHide - it just works!
+
+To use this feature:
+1. Install [HidHide](https://github.com/nefarius/HidHide/releases)
+2. Run Stadia-ViGEm - that's it!
+
+### Manual Configuration (Fallback)
+
+If automatic hiding doesn't work or you prefer manual control, you can configure HidHide manually:
  - Open HidHide Configuration Client
  - On Applications tab:
    - Click "+" button
@@ -22,7 +39,7 @@ Stadia-ViGEm creates a virtual Xbox 360 controller which results in double input
    - Tick "Enable device hiding" at the bottom of the window
  - Reboot your PC
 
-After this, only Stadia-ViGEm will be able to see the real controller. Note: This means that whenever Stadia-ViGEm isn't running, the controller will not be able to control anything on your PC.
+Note: With manual configuration, the controller will not be visible to any application when Stadia-ViGEm isn't running.
 
 ## Thanks to
 

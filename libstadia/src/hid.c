@@ -435,3 +435,53 @@ void hid_free_device(struct hid_device *device)
     free(device->feature_buffer);
     free(device);
 }
+
+LPWSTR hid_get_device_instance_id(LPTSTR path)
+{
+    LPWSTR path_w;
+    DWORD required_size = 0;
+    DEVPROPTYPE prop_type;
+
+#ifdef UNICODE
+    path_w = path;
+#else
+    int path_length = strlen(path);
+    path_w = malloc((path_length + 1) * sizeof(WCHAR));
+    MultiByteToWideChar(CP_ACP, 0, path, -1, path_w, path_length + 1);
+#endif /* UNICODE */
+
+    // Get required size for the Device Instance ID
+    CM_Get_Device_Interface_PropertyW(path_w, &DEVPKEY_Device_InstanceId, &prop_type, NULL, &required_size, 0);
+    
+    if (required_size == 0)
+    {
+#ifndef UNICODE
+        free(path_w);
+#endif
+        return NULL;
+    }
+
+    LPWSTR inst_id = (LPWSTR)malloc(required_size);
+    if (inst_id == NULL)
+    {
+#ifndef UNICODE
+        free(path_w);
+#endif
+        return NULL;
+    }
+
+    if (CM_Get_Device_Interface_PropertyW(path_w, &DEVPKEY_Device_InstanceId, &prop_type, (PBYTE)inst_id, &required_size, 0) != CR_SUCCESS)
+    {
+        free(inst_id);
+#ifndef UNICODE
+        free(path_w);
+#endif
+        return NULL;
+    }
+
+#ifndef UNICODE
+    free(path_w);
+#endif
+
+    return inst_id;
+}

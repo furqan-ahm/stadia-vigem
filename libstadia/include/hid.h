@@ -48,4 +48,15 @@ INT hid_send_feature_report(struct hid_device *device, const void *data, size_t 
 void hid_close_device(struct hid_device *device);
 void hid_free_device(struct hid_device *device);
 
+/*
+ * Get the Device Instance ID from a HID device path.
+ * This is used for HidHide integration - HidHide uses Device Instance IDs
+ * to identify devices to hide.
+ * 
+ * @param path The HID device path (from hid_device_info.path)
+ * @return A newly allocated wide string containing the Device Instance ID,
+ *         or NULL on failure. Caller must free with free().
+ */
+LPWSTR hid_get_device_instance_id(LPTSTR path);
+
 #endif /* HID_H */
